@@ -4,7 +4,7 @@
 
 package de.mossgrabers.framework.configuration;
 
-import de.mossgrabers.framework.configuration.AbstractConfiguration.BehaviourOnStop;
+import de.mossgrabers.framework.configuration.AbstractConfiguration.BehaviorOnStop;
 import de.mossgrabers.framework.configuration.AbstractConfiguration.RecordFunction;
 import de.mossgrabers.framework.daw.constants.Resolution;
 import de.mossgrabers.framework.daw.midi.ArpeggiatorMode;
@@ -68,11 +68,27 @@ public interface Configuration
 
 
     /**
+     * Set the scale by name.
+     *
+     * @param scale The name of a scale
+     */
+    void setScale (String scale);
+
+
+    /**
      * Get the scale base note by name.
      *
      * @return The name of a scale base note
      */
     String getScaleBase ();
+
+
+    /**
+     * Set the scale base note by name.
+     *
+     * @param scaleBase The name of a scale base note
+     */
+    void setScaleBase (final String scaleBase);
 
 
     /**
@@ -84,11 +100,27 @@ public interface Configuration
 
 
     /**
+     * Set the in-scale setting.
+     *
+     * @param inScale True if scale otherwise chromatic
+     */
+    void setScaleInKey (boolean inScale);
+
+
+    /**
      * Get the scale layout.
      *
      * @return The scale layout
      */
     String getScaleLayout ();
+
+
+    /**
+     * Set the scale layout.
+     *
+     * @param scaleLayout The scale layout
+     */
+    void setScaleLayout (String scaleLayout);
 
 
     /**
@@ -100,11 +132,11 @@ public interface Configuration
 
 
     /**
-     * Get the behaviour when stop is pressed.
+     * Get the behavior when stop is pressed.
      *
-     * @return THe behaviour
+     * @return The behavior
      */
-    BehaviourOnStop getBehaviourOnStop ();
+    BehaviorOnStop getBehaviourOnStop ();
 
 
     /**
@@ -189,11 +221,18 @@ public interface Configuration
 
 
     /**
-     * Set the default length for new clips.
+     * Set the index (0-7) of the default length for new clips.
      *
-     * @param value The default length for new clips
+     * @param value The index of the length which is: 0: "1 Beat", 1: "2 Beat", 2: "1 Bar", 3: "2
+     *            Bars", 4: "4 Bars", 5: "8 Bars", 6: "16 Bars", 7: "32 Bars"
      */
     void setNewClipLength (int value);
+
+
+    /**
+     * Select the next new clip length. Wraps around to the first.
+     */
+    void nextNewClipLength ();
 
 
     /**
@@ -221,9 +260,9 @@ public interface Configuration
 
 
     /**
-     * Get the action for rec armed pads.
+     * Get the action for record armed pads.
      *
-     * @return The action for rec armed pads (0-2).
+     * @return The action for record armed pads (0-2).
      */
     int getActionForRecArmedPad ();
 
@@ -284,9 +323,9 @@ public interface Configuration
 
 
     /**
-     * Get the functionality of the footswitch 2.
+     * Get the functionality of the foot-switch 2.
      *
-     * @return The functionality of the footswitch 2.
+     * @return The functionality of the foot-switch 2.
      */
     int getFootswitch2 ();
 
@@ -320,7 +359,7 @@ public interface Configuration
     /**
      * Lookup the index of the given arpeggiator mode among the available ones.
      *
-     * @param arpMode The arp mode to look up
+     * @param arpMode The arpeggiator mode to look up
      * @return The index
      */
     int lookupArpeggiatorModeIndex (ArpeggiatorMode arpMode);
@@ -413,6 +452,21 @@ public interface Configuration
 
 
     /**
+     * Select the next or previous note repeat mode.
+     *
+     * @param increase True to select the next otherwise the previous
+     */
+    default void setPrevNextNoteRepeatMode (final boolean increase)
+    {
+        final ArpeggiatorMode arpMode = this.getNoteRepeatMode ();
+        final int modeIndex = this.lookupArpeggiatorModeIndex (arpMode);
+        final List<ArpeggiatorMode> modes = this.getArpeggiatorModes ();
+        final int newIndex = Math.max (0, Math.min (modes.size () - 1, modeIndex + (increase ? 1 : -1)));
+        this.setNoteRepeatMode (modes.get (newIndex));
+    }
+
+
+    /**
      * Get the MIDI channel for editing.
      *
      * @return The MIDI channel for editing notes
@@ -423,7 +477,7 @@ public interface Configuration
     /**
      * Set the MIDI channel for editing.
      *
-     * @param midiChannel The midi channel, 0-15
+     * @param midiChannel The MIDI channel, 0-15
      */
     void setMidiEditChannel (int midiChannel);
 

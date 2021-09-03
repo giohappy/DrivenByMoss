@@ -10,7 +10,7 @@ import java.util.LinkedList;
 
 
 /**
- * Testframework.
+ * Test framework.
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
@@ -18,7 +18,7 @@ public class TestFramework
 {
     private static final int           ANSWER_DELAY = 100;
 
-    private IHost                      host;
+    private final IHost                host;
     private final LinkedList<Runnable> scheduler    = new LinkedList<> ();
 
 

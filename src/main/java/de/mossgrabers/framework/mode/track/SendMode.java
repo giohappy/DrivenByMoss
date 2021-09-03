@@ -38,7 +38,7 @@ public class SendMode<S extends IControlSurface<C>, C extends Configuration> ext
      * @param sendIndex The send index, if negative the sends of the selected track are edited
      * @param surface The control surface
      * @param model The model
-     * @param isAbsolute If true the value change is happending with a setter otherwise relative
+     * @param isAbsolute If true the value change is happening with a setter otherwise relative
      *            change method is used
      */
     public SendMode (final int sendIndex, final S surface, final IModel model, final boolean isAbsolute)
@@ -53,7 +53,7 @@ public class SendMode<S extends IControlSurface<C>, C extends Configuration> ext
      * @param sendIndex The send index
      * @param surface The control surface
      * @param model The model
-     * @param isAbsolute If true the value change is happending with a setter otherwise relative
+     * @param isAbsolute If true the value change is happening with a setter otherwise relative
      *            change method is used
      * @param controls The IDs of the knobs or faders to control this mode
      */
@@ -69,7 +69,7 @@ public class SendMode<S extends IControlSurface<C>, C extends Configuration> ext
      * @param sendIndex The send index
      * @param surface The control surface
      * @param model The model
-     * @param isAbsolute If true the value change is happending with a setter otherwise relative
+     * @param isAbsolute If true the value change is happening with a setter otherwise relative
      *            change method is used
      * @param controls The IDs of the knobs or faders to control this mode
      * @param isAlternativeFunction Callback function to execute the secondary function, e.g. a

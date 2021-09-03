@@ -76,7 +76,7 @@ public class TrackModule extends AbstractModule
                 try
                 {
                     final int trackNo = Integer.parseInt (subCommand) - 1;
-                    parseTrackValue (this.model.getCurrentTrackBank ().getItem (trackNo), path, value);
+                    this.parseTrackValue (this.model.getCurrentTrackBank ().getItem (trackNo), path, value);
                 }
                 catch (final NumberFormatException ex)
                 {
@@ -85,7 +85,7 @@ public class TrackModule extends AbstractModule
                 break;
 
             case "master":
-                parseTrackValue (this.model.getMasterTrack (), path, value);
+                this.parseTrackValue (this.model.getMasterTrack (), path, value);
                 break;
 
             default:
@@ -139,11 +139,8 @@ public class TrackModule extends AbstractModule
         writer.sendOSC (trackAddress + "canHoldAudioData", track.canHoldAudioData (), dump);
         writer.sendOSC (trackAddress + "position", track.getPosition (), dump);
 
-        if (track instanceof ICursorTrack)
-        {
-            final ICursorTrack cursorTrack = (ICursorTrack) track;
+        if (track instanceof final ICursorTrack cursorTrack)
             writer.sendOSC (trackAddress + "pinned", cursorTrack.isPinned (), dump);
-        }
 
         final ISendBank sendBank = track.getSendBank ();
         for (int i = 0; i < sendBank.getPageSize (); i++)
@@ -258,13 +255,13 @@ public class TrackModule extends AbstractModule
                 switch (subCommand2)
                 {
                     case "audio":
-                        application.addAudioTrack ();
+                        this.model.getTrackBank ().addChannel (ChannelType.AUDIO);
                         break;
                     case "effect":
                         application.addEffectTrack ();
                         break;
                     case "instrument":
-                        application.addInstrumentTrack ();
+                        this.model.getTrackBank ().addChannel (ChannelType.INSTRUMENT);
                         break;
                     default:
                         throw new UnknownCommandException (subCommand2);
@@ -309,7 +306,7 @@ public class TrackModule extends AbstractModule
             case TAG_SELECTED:
                 final ITrack cursorTrack = this.model.getCursorTrack ();
                 if (cursorTrack.doesExist ())
-                    parseTrackValue (cursorTrack, path, value);
+                    this.parseTrackValue (cursorTrack, path, value);
                 break;
 
             default:
@@ -318,7 +315,7 @@ public class TrackModule extends AbstractModule
     }
 
 
-    private static void parseTrackValue (final ITrack track, final LinkedList<String> path, final Object value) throws IllegalParameterException, MissingCommandException, UnknownCommandException
+    private void parseTrackValue (final ITrack track, final LinkedList<String> path, final Object value) throws IllegalParameterException, MissingCommandException, UnknownCommandException
     {
         final String command = getSubCommand (path);
         switch (command)
@@ -424,7 +421,7 @@ public class TrackModule extends AbstractModule
                 break;
 
             case "clip":
-                parseClipValue (track, path, value);
+                this.parseClipValue (track, path, value);
                 break;
 
             case "enter":
@@ -438,9 +435,8 @@ public class TrackModule extends AbstractModule
                 break;
 
             case "pinned":
-                if (track instanceof ICursorTrack)
+                if (track instanceof final ICursorTrack cursorTrack)
                 {
-                    final ICursorTrack cursorTrack = (ICursorTrack) track;
                     if (value == null)
                         cursorTrack.togglePinned ();
                     else
@@ -454,7 +450,7 @@ public class TrackModule extends AbstractModule
     }
 
 
-    private static void parseClipValue (final ITrack track, final LinkedList<String> path, final Object value) throws UnknownCommandException, MissingCommandException, IllegalParameterException
+    private void parseClipValue (final ITrack track, final LinkedList<String> path, final Object value) throws UnknownCommandException, MissingCommandException, IllegalParameterException
     {
         final String command = getSubCommand (path);
 
@@ -473,7 +469,10 @@ public class TrackModule extends AbstractModule
                     slot.launch ();
                     break;
                 case "record":
-                    slot.record ();
+                    this.model.recordNoteClip (track, slot);
+                    break;
+                case "create":
+                    this.model.createNoteClip (track, slot, toInteger (value), true);
                     break;
                 case TAG_DUPLICATE:
                     slot.duplicate ();

@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Helper class for applying scales to a row x column pad grid. There are different layouts
- * available incl. transpositions by octaves. Furthermore, specific matrices are supported for a
+ * available including transpositions by octaves. Furthermore, specific matrices are supported for a
  * drum, a piano and a sequencer layout.
  *
  * @author J&uuml;rgen Mo&szlig;graber
@@ -49,9 +49,9 @@ public class Scales
         6
     };
 
-    /** The midi note at which the drum grid starts. */
+    /** The MIDI note at which the drum grid starts. */
     public static final int             DRUM_NOTE_START          = 36;
-    /** The midi note at which the drum grid ends. */
+    /** The MIDI note at which the drum grid ends. */
     public static final int             DRUM_NOTE_END            = 100;
 
     // @formatter:off
@@ -106,8 +106,8 @@ public class Scales
     private int                         pianoOctave              = 0;
     private int                         startNote;
     private int                         endNote;
-    private int                         numColumns;
-    private int                         numRows;
+    private final int                   numColumns;
+    private final int                   numRows;
 
     private int []                      drumMatrix               = DRUM_MATRIX;
     private int                         drumNoteStart            = DRUM_NOTE_START;
@@ -115,15 +115,15 @@ public class Scales
 
     private final Map<Scale, ScaleGrid> scaleGrids               = new EnumMap<> (Scale.class);
     private final Map<Scale, ChordGrid> chordGrids               = new EnumMap<> (Scale.class);
-    private IValueChanger               valueChanger;
+    private final IValueChanger         valueChanger;
 
 
     /**
      * Constructor.
      *
      * @param valueChanger A value changer
-     * @param startNote The first midi note of the pad grid
-     * @param endNote The last midi note of the pad grid
+     * @param startNote The first MIDI note of the pad grid
+     * @param endNote The last MIDI note of the pad grid
      * @param numColumns The number of columns of the pad grid
      * @param numRows The number of rows of the pad grid
      */
@@ -359,6 +359,28 @@ public class Scales
     public void setScaleLayoutByName (final String scaleLayoutName)
     {
         this.setScaleLayout (ScaleLayout.getByName (scaleLayoutName));
+    }
+
+
+    /**
+     * Returns true if there is a previous scale layout to select.
+     *
+     * @return True if there is a previous scale layout to select
+     */
+    public boolean hasPrevScaleLayout ()
+    {
+        return this.scaleLayout.ordinal () > 0;
+    }
+
+
+    /**
+     * Returns true if there is a next scale layout to select.
+     *
+     * @return True if there is a next scale layout to select
+     */
+    public boolean hasNextScaleLayout ()
+    {
+        return this.scaleLayout.ordinal () < ScaleLayout.values ().length - 1;
     }
 
 
@@ -697,7 +719,7 @@ public class Scales
 
 
     /**
-     * Calculate the thirds on top of the given midi note. Respects the current octave, scale and
+     * Calculate the thirds on top of the given MIDI note. Respects the current octave, scale and
      * scale base.
      *
      * @param baseNote The base note of the chord
@@ -1028,7 +1050,7 @@ public class Scales
 
 
     /**
-     * Overwrite to hook in translation for grids which do not send midi notes 36-100.
+     * Overwrite to hook in translation for grids which do not send MIDI notes 36-100.
      *
      * @param matrix The matrix to translate
      * @return The modified matrix
@@ -1055,9 +1077,9 @@ public class Scales
 
 
     /**
-     * Get the first midi note of the pad grid.
+     * Get the first MIDI note of the pad grid.
      *
-     * @return The first midi note of the pad grid
+     * @return The first MIDI note of the pad grid
      */
     public int getStartNote ()
     {
@@ -1066,9 +1088,9 @@ public class Scales
 
 
     /**
-     * Set the first midi note of the pad grid.
+     * Set the first MIDI note of the pad grid.
      *
-     * @param startNote The first midi note of the pad grid
+     * @param startNote The first MIDI note of the pad grid
      */
     public void setStartNote (final int startNote)
     {
@@ -1077,9 +1099,9 @@ public class Scales
 
 
     /**
-     * Get the last midi note of the pad grid.
+     * Get the last MIDI note of the pad grid.
      *
-     * @return The last midi note of the pad grid
+     * @return The last MIDI note of the pad grid
      */
     public int getEndNote ()
     {
@@ -1088,9 +1110,9 @@ public class Scales
 
 
     /**
-     * Set the last midi note of the pad grid.
+     * Set the last MIDI note of the pad grid.
      *
-     * @param endNote The last midi note of the pad grid
+     * @param endNote The last MIDI note of the pad grid
      */
     public void setEndNote (final int endNote)
     {

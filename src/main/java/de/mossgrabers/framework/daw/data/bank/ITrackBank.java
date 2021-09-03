@@ -4,9 +4,14 @@
 
 package de.mossgrabers.framework.daw.data.bank;
 
+import de.mossgrabers.framework.controller.color.ColorEx;
+import de.mossgrabers.framework.daw.data.IDeviceMetadata;
 import de.mossgrabers.framework.daw.data.ITrack;
+import de.mossgrabers.framework.daw.resource.ChannelType;
 import de.mossgrabers.framework.observer.IIndexedValueObserver;
 import de.mossgrabers.framework.observer.INoteObserver;
+
+import java.util.List;
 
 
 /**
@@ -71,4 +76,42 @@ public interface ITrackBank extends IChannelBank<ITrack>
      * @param observer The note observer
      */
     void addNoteObserver (final INoteObserver observer);
+
+
+    /**
+     * Adds a new channel to this channel bank. Creates a random name. Uses a random color for the
+     * channel.
+     *
+     * @param type The type of channel to add
+     */
+    void addChannel (ChannelType type);
+
+
+    /**
+     * Adds a new channel to this channel bank. Uses a random color for the channel.
+     *
+     * @param type The type of channel to add
+     * @param name The name of the channel, might be null
+     */
+    void addChannel (ChannelType type, String name);
+
+
+    /**
+     * Adds a new channel to this channel bank.
+     *
+     * @param type The type of channel to add
+     * @param name The name of the channel, might be null
+     * @param color The color of the channel, might be null
+     */
+    void addChannel (ChannelType type, String name, ColorEx color);
+
+
+    /**
+     * Adds a new channel to this channel bank.
+     *
+     * @param type The type of channel to add
+     * @param name The name of the channel, might be null
+     * @param devices The devices to add to the channel
+     */
+    void addChannel (ChannelType type, String name, List<IDeviceMetadata> devices);
 }

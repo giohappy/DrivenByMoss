@@ -36,8 +36,8 @@ public abstract class DefaultControllerDefinition implements IControllerDefiniti
      * @param uuid The UUID of the controller implementation
      * @param hardwareModel The hardware model which this controller implementation supports
      * @param hardwareVendor The hardware vendor of the controller
-     * @param numMidiInPorts The number of required midi in ports
-     * @param numMidiOutPorts The number of required midi out ports
+     * @param numMidiInPorts The number of required MIDI in ports
+     * @param numMidiOutPorts The number of required MIDI out ports
      */
     protected DefaultControllerDefinition (final UUID uuid, final String hardwareModel, final String hardwareVendor, final int numMidiInPorts, final int numMidiOutPorts)
     {
@@ -194,7 +194,7 @@ public abstract class DefaultControllerDefinition implements IControllerDefiniti
 
 
     /**
-     * Adds a midi discovery pair to the auto detection with the same name for input and output
+     * Adds a MIDI discovery pair to the auto detection with the same name for input and output
      * port.
      *
      * @param name The name to look for
@@ -207,7 +207,7 @@ public abstract class DefaultControllerDefinition implements IControllerDefiniti
 
 
     /**
-     * Adds a discovery pair to the auto detection for midi inputs and outputs.
+     * Adds a discovery pair to the auto detection for MIDI inputs and outputs.
      *
      * @param nameIn The name to use for the input port, may be null
      * @param nameOut The name to use for the output port, may be null
@@ -226,7 +226,7 @@ public abstract class DefaultControllerDefinition implements IControllerDefiniti
 
 
     /**
-     * Adds a midi discovery pair to the auto detection with the same name for input and output
+     * Adds a MIDI discovery pair to the auto detection with the same name for input and output
      * port.
      *
      * @param ins The input names to look for

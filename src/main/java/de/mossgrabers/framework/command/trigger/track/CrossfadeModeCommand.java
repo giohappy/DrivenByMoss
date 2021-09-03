@@ -13,7 +13,7 @@ import de.mossgrabers.framework.utils.ButtonEvent;
 
 
 /**
- * Command to toggle the crossfade mode of the current track.
+ * Command to toggle the cross-fade mode of the current track.
  *
  * @param <S> The type of the control surface
  * @param <C> The type of the configuration
@@ -22,7 +22,7 @@ import de.mossgrabers.framework.utils.ButtonEvent;
  */
 public class CrossfadeModeCommand<S extends IControlSurface<C>, C extends Configuration> extends AbstractTriggerCommand<S, C>
 {
-    private int index;
+    private final int index;
 
 
     /**

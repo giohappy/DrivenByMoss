@@ -12,19 +12,19 @@ import com.bitwig.extension.controller.api.Setting;
 
 
 /**
- * Bitwig implementation of an enum setting.
+ * Bitwig implementation of an enumeration setting.
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
 public class EnumSettingImpl extends AbstractSetting implements IEnumSetting
 {
-    private SettableEnumValue enumValue;
+    private final SettableEnumValue enumValue;
 
 
     /**
      * Constructor.
      *
-     * @param enumValue The enum value
+     * @param enumValue The enumeration value
      */
     public EnumSettingImpl (final SettableEnumValue enumValue)
     {

@@ -17,14 +17,14 @@ import com.bitwig.extension.controller.api.UsbTransferDirection;
 
 
 /**
- * Implementation for an USB endpoint.
+ * Implementation for an USB end-point.
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
 public class UsbEndpointImpl implements IUsbEndpoint
 {
-    private IHost   host;
-    private UsbPipe endpoint;
+    private final IHost   host;
+    private final UsbPipe endpoint;
 
 
     /**

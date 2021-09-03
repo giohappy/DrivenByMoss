@@ -24,9 +24,9 @@ public class ChannelComponent extends ChannelSelectComponent
 {
     /** Edit volume. */
     public static final int   EDIT_TYPE_VOLUME     = 0;
-    /** Edit panorma. */
+    /** Edit panorama. */
     public static final int   EDIT_TYPE_PAN        = 1;
-    /** Edit crossfader setting. */
+    /** Edit cross-fader setting. */
     public static final int   EDIT_TYPE_CROSSFADER = 2;
     /** Edit all settings. */
     public static final int   EDIT_TYPE_ALL        = 3;
@@ -71,7 +71,7 @@ public class ChannelComponent extends ChannelSelectComponent
      * @param isSolo True if soloed
      * @param isArm True if recording is armed
      * @param isActive True if channel is activated
-     * @param crossfadeMode The crossfader mode: 0 = A, 1 = AB, B = 2, -1 turns it off
+     * @param crossfadeMode The cross-fader mode: 0 = A, 1 = AB, B = 2, -1 turns it off
      */
     public ChannelComponent (final double editType, final String menuName, final boolean isMenuSelected, final String name, final ColorEx color, final boolean isSelected, final ChannelType type, final double volumeValue, final double modulatedVolumeValue, final String volumeText, final double panValue, final double modulatedPanValue, final String panText, final double vuValueLeft, final double vuValueRight, final boolean isMute, final boolean isSolo, final boolean isArm, final boolean isActive, final double crossfadeMode)
     {
@@ -250,7 +250,9 @@ public class ChannelComponent extends ChannelSelectComponent
         final double vuOffsetRight = faderInnerHeight - vuHeightRight;
         final double vuWidth = faderOffset - separatorSize;
         gc.fillRectangle (vuX, faderTop + separatorSize, vuWidth + 1, faderInnerHeight, backgroundDarker);
-        final ColorEx colorVu = this.modifyIfOff (configuration.getColorVu ());
+        ColorEx colorVu = this.modifyIfOff (configuration.getColorVu ());
+        if (this.isMute)
+            colorVu = configuration.getColorMute ();
         gc.fillRectangle (vuX, faderTop + separatorSize + vuOffsetLeft, vuWidth / 2, vuHeightLeft, colorVu);
         gc.fillRectangle (vuX + vuWidth / 2, faderTop + separatorSize + vuOffsetRight, vuWidth / 2, vuHeightRight, colorVu);
 
@@ -258,7 +260,7 @@ public class ChannelComponent extends ChannelSelectComponent
 
         if (this.type != ChannelType.LAYER)
         {
-            // Rec Arm
+            // Record Arm
             this.drawButton (gc, leftColumn, buttonTop, controlWidth, buttonHeight - 1, backgroundColor, this.modifyIfOff (configuration.getColorRecord ()), textColor, this.isArm, "channel/record_arm.svg", configuration);
         }
 
@@ -388,26 +390,12 @@ public class ChannelComponent extends ChannelSelectComponent
     {
         if (this == obj)
             return true;
-        if (!super.equals (obj))
-            return false;
-        if (this.getClass () != obj.getClass ())
+        if (!super.equals (obj) || this.getClass () != obj.getClass ())
             return false;
         final ChannelComponent other = (ChannelComponent) obj;
-        if (Double.doubleToLongBits (this.crossfadeMode) != Double.doubleToLongBits (other.crossfadeMode))
+        if (Double.doubleToLongBits (this.crossfadeMode) != Double.doubleToLongBits (other.crossfadeMode) || Double.doubleToLongBits (this.editType) != Double.doubleToLongBits (other.editType) || this.isActive != other.isActive || this.isArm != other.isArm)
             return false;
-        if (Double.doubleToLongBits (this.editType) != Double.doubleToLongBits (other.editType))
-            return false;
-        if (this.isActive != other.isActive)
-            return false;
-        if (this.isArm != other.isArm)
-            return false;
-        if (this.isMute != other.isMute)
-            return false;
-        if (this.isSolo != other.isSolo)
-            return false;
-        if (Double.doubleToLongBits (this.modulatedPanValue) != Double.doubleToLongBits (other.modulatedPanValue))
-            return false;
-        if (Double.doubleToLongBits (this.modulatedVolumeValue) != Double.doubleToLongBits (other.modulatedVolumeValue))
+        if (this.isMute != other.isMute || this.isSolo != other.isSolo || Double.doubleToLongBits (this.modulatedPanValue) != Double.doubleToLongBits (other.modulatedPanValue) || Double.doubleToLongBits (this.modulatedVolumeValue) != Double.doubleToLongBits (other.modulatedVolumeValue))
             return false;
         if (this.panText == null)
         {
@@ -416,9 +404,7 @@ public class ChannelComponent extends ChannelSelectComponent
         }
         else if (!this.panText.equals (other.panText))
             return false;
-        if (Double.doubleToLongBits (this.panValue) != Double.doubleToLongBits (other.panValue))
-            return false;
-        if (this.type != other.type)
+        if (Double.doubleToLongBits (this.panValue) != Double.doubleToLongBits (other.panValue) || this.type != other.type)
             return false;
         if (this.volumeText == null)
         {
@@ -427,9 +413,7 @@ public class ChannelComponent extends ChannelSelectComponent
         }
         else if (!this.volumeText.equals (other.volumeText))
             return false;
-        if (Double.doubleToLongBits (this.volumeValue) != Double.doubleToLongBits (other.volumeValue))
-            return false;
-        if (Double.doubleToLongBits (this.vuValueLeft) != Double.doubleToLongBits (other.vuValueLeft))
+        if (Double.doubleToLongBits (this.volumeValue) != Double.doubleToLongBits (other.volumeValue) || Double.doubleToLongBits (this.vuValueLeft) != Double.doubleToLongBits (other.vuValueLeft))
             return false;
         return Double.doubleToLongBits (this.vuValueRight) == Double.doubleToLongBits (other.vuValueRight);
     }

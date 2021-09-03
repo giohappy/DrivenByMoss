@@ -14,7 +14,7 @@ import de.mossgrabers.framework.daw.data.IDeviceMetadata;
  */
 public class DeviceMetadataImpl implements IDeviceMetadata
 {
-    /** The type of the plugin. */
+    /** The type of the plug-in. */
     public enum PluginType
     {
         /** A native Bitwig device. */
@@ -26,9 +26,9 @@ public class DeviceMetadataImpl implements IDeviceMetadata
     }
 
 
-    private String     name;
-    private String     id;
-    private PluginType pluginType;
+    private final String     name;
+    private final String     id;
+    private final PluginType pluginType;
 
 
     /**

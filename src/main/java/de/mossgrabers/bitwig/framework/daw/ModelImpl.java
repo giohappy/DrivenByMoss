@@ -59,7 +59,7 @@ public class ModelImpl extends AbstractModel
 
     private final ControllerHost           controllerHost;
     private final CursorTrack              bwCursorTrack;
-    private Track                          rootTrackGroup;
+    private final Track                    rootTrackGroup;
     private final BooleanValue             masterTrackEqualsValue;
     private final Map<Integer, ISceneBank> sceneBanks              = new HashMap<> (1);
 
@@ -78,14 +78,15 @@ public class ModelImpl extends AbstractModel
 
         this.controllerHost = controllerHost;
 
-        final Application app = controllerHost.createApplication ();
-        this.application = new ApplicationImpl (app);
+        final Application bwApplication = controllerHost.createApplication ();
+        final Arranger bwArranger = controllerHost.createArranger ();
+
+        this.application = new ApplicationImpl (bwApplication, bwArranger);
         final Project proj = controllerHost.getProject ();
         this.rootTrackGroup = proj.getRootTrackGroup ();
-        this.project = new ProjectImpl (this.valueChanger, proj, app);
+        this.project = new ProjectImpl (this.valueChanger, proj, bwApplication);
 
         this.transport = new TransportImpl (controllerHost, this.application, this.valueChanger);
-        final Arranger bwArranger = controllerHost.createArranger ();
         this.arranger = new ArrangerImpl (bwArranger);
         final int numMarkers = modelSetup.getNumMarkers ();
         if (numMarkers > 0)
@@ -119,11 +120,11 @@ public class ModelImpl extends AbstractModel
         else
             tb = this.bwCursorTrack.createSiblingsTrackBank (numTracks, numSends, numScenes, false, false);
 
-        this.trackBank = new TrackBankImpl (this.host, this.valueChanger, tb, this.bwCursorTrack, this.rootTrackGroup, (ApplicationImpl) this.application, numTracks, numScenes, numSends);
+        this.trackBank = new TrackBankImpl (this.host, (ApplicationImpl) this.application, this.valueChanger, tb, (CursorTrackImpl) this.cursorTrack, this.rootTrackGroup, numTracks, numScenes, numSends);
 
         final int numFxTracks = this.modelSetup.getNumFxTracks ();
         final TrackBank effectTrackBank = controllerHost.createEffectTrackBank (numFxTracks, numScenes);
-        this.effectTrackBank = new EffectTrackBankImpl (this.host, this.valueChanger, effectTrackBank, this.bwCursorTrack, this.rootTrackGroup, (ApplicationImpl) this.application, numFxTracks, numScenes, this.trackBank);
+        this.effectTrackBank = new EffectTrackBankImpl (this.host, this.valueChanger, effectTrackBank, (CursorTrackImpl) this.cursorTrack, this.rootTrackGroup, (ApplicationImpl) this.application, numFxTracks, numScenes, this.trackBank);
 
         //////////////////////////////////////////////////////////////////////////////
         // Create devices
@@ -202,7 +203,7 @@ public class ModelImpl extends AbstractModel
 
         final int numResults = this.modelSetup.getNumResults ();
         if (numResults > 0)
-            this.browser = new BrowserImpl (controllerHost.createPopupBrowser (), this.bwCursorTrack, mainCursorDevice, this.modelSetup.getNumFilterColumnEntries (), numResults);
+            this.browser = new BrowserImpl (this.host, controllerHost.createPopupBrowser (), this.bwCursorTrack, mainCursorDevice, this.modelSetup.getNumFilterColumnEntries (), numResults);
 
         this.masterTrackEqualsValue = mainCursorDevice.channel ().createEqualsValue (master);
         this.masterTrackEqualsValue.markInterested ();
@@ -219,7 +220,7 @@ public class ModelImpl extends AbstractModel
      */
     private void flushWorkaround ()
     {
-        // There are enough flushs happening if playback is active
+        // There are enough flushes happening if playback is active
         if (!this.getTransport ().isPlaying ())
             this.controllerHost.requestFlush ();
         this.controllerHost.scheduleTask (this::flushWorkaround, 100);
@@ -241,7 +242,7 @@ public class ModelImpl extends AbstractModel
         return this.sceneBanks.computeIfAbsent (Integer.valueOf (numScenes), key -> {
             final TrackBank tb = this.controllerHost.createMainTrackBank (1, this.modelSetup.getNumSends (), numScenes);
             tb.followCursorTrack (this.bwCursorTrack);
-            return new TrackBankImpl (this.host, this.valueChanger, tb, this.bwCursorTrack, this.rootTrackGroup, (ApplicationImpl) this.application, 1, numScenes, 0).getSceneBank ();
+            return new TrackBankImpl (this.host, (ApplicationImpl) this.application, this.valueChanger, tb, (CursorTrackImpl) this.cursorTrack, this.rootTrackGroup, 1, numScenes, 0).getSceneBank ();
         });
     }
 
@@ -271,7 +272,7 @@ public class ModelImpl extends AbstractModel
     public void recordNoteClip (final ITrack track, final ISlot slot)
     {
         if (!slot.isRecording ())
-            slot.record ();
+            slot.startRecording ();
         slot.launch ();
     }
 

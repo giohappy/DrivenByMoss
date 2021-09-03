@@ -9,12 +9,15 @@ import de.mossgrabers.framework.controller.ButtonID;
 import de.mossgrabers.framework.controller.IControlSurface;
 import de.mossgrabers.framework.controller.color.ColorEx;
 import de.mossgrabers.framework.controller.grid.IPadGrid;
+import de.mossgrabers.framework.controller.hardware.ButtonEventHandler;
 import de.mossgrabers.framework.controller.hardware.IHwButton;
 import de.mossgrabers.framework.daw.DAWColor;
 import de.mossgrabers.framework.daw.IModel;
 import de.mossgrabers.framework.daw.INoteClip;
 import de.mossgrabers.framework.daw.IStepInfo;
+import de.mossgrabers.framework.daw.StepState;
 import de.mossgrabers.framework.daw.constants.Resolution;
+import de.mossgrabers.framework.daw.data.GridStep;
 import de.mossgrabers.framework.daw.data.IChannel;
 import de.mossgrabers.framework.daw.data.IDrumDevice;
 import de.mossgrabers.framework.daw.data.IDrumPad;
@@ -23,6 +26,7 @@ import de.mossgrabers.framework.daw.data.bank.IDrumPadBank;
 import de.mossgrabers.framework.daw.data.bank.ITrackBank;
 import de.mossgrabers.framework.utils.ButtonEvent;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
 
@@ -37,7 +41,7 @@ import java.util.function.IntUnaryOperator;
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
-public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends Configuration> extends AbstractSequencerView<S, C> implements TransposeView
+public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends Configuration> extends AbstractSequencerView<S, C> implements TransposeView, ButtonEventHandler
 {
     /** The color ID for the recording state. */
     public static final String COLOR_PAD_RECORD      = "COLOR_PAD_RECORD";
@@ -68,6 +72,13 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
 
     protected int              selectedPad;
     protected int              scrollPosition        = -1;
+
+    protected ButtonID         firstPad              = ButtonID.PAD1;
+    protected ButtonID         buttonSelect          = ButtonID.SELECT;
+    protected ButtonID         buttonBrowse          = ButtonID.BROWSE;
+    protected ButtonID         buttonSolo            = ButtonID.SOLO;
+    protected ButtonID         buttonMute            = ButtonID.MUTE;
+    protected ButtonID         buttonDelete          = ButtonID.DELETE;
 
 
     /**
@@ -111,9 +122,6 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         this.sequencerSteps = numSequencerLines * this.numColumns;
         this.playColumns = 4; // This layout is currently fixed to a 4 width
 
-        this.canScrollUp = false;
-        this.canScrollDown = false;
-
         final ITrackBank tb = model.getTrackBank ();
         tb.addSelectionObserver ( (index, isSelected) -> this.keyManager.clearPressedKeys ());
         tb.addNoteObserver (this::updateNote);
@@ -133,7 +141,14 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     public void onActivate ()
     {
         super.onActivate ();
+
         this.model.getDrumDevice ().getDrumPadBank ().setIndication (true);
+
+        this.registerButtonMonitors (this.buttonSelect);
+        this.registerButtonMonitors (this.buttonSolo);
+        this.registerButtonMonitors (this.buttonMute);
+        this.registerButtonMonitors (this.buttonDelete);
+        this.registerButtonMonitors (this.buttonBrowse);
     }
 
 
@@ -142,7 +157,44 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     public void onDeactivate ()
     {
         super.onDeactivate ();
+
         this.model.getDrumDevice ().getDrumPadBank ().setIndication (false);
+
+        this.unregisterButtonMonitors (this.buttonSelect);
+        this.unregisterButtonMonitors (this.buttonSolo);
+        this.unregisterButtonMonitors (this.buttonMute);
+        this.unregisterButtonMonitors (this.buttonDelete);
+        this.unregisterButtonMonitors (this.buttonBrowse);
+    }
+
+
+    private void registerButtonMonitors (final ButtonID buttonID)
+    {
+        final IHwButton button = this.surface.getButton (buttonID);
+        if (button == null)
+            return;
+        button.addEventHandler (ButtonEvent.DOWN, this);
+        button.addEventHandler (ButtonEvent.UP, this);
+    }
+
+
+    private void unregisterButtonMonitors (final ButtonID buttonID)
+    {
+        final IHwButton button = this.surface.getButton (buttonID);
+        if (button == null)
+            return;
+        button.removeEventHandler (ButtonEvent.DOWN, this);
+        button.removeEventHandler (ButtonEvent.UP, this);
+    }
+
+
+    /**
+     * Callback for pressing / releasing buttons to update the note mapping for button combinations.
+     */
+    @Override
+    public void handle (final ButtonEvent event)
+    {
+        this.updateNoteMapping ();
     }
 
 
@@ -225,7 +277,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         final int channel = this.configuration.getMidiEditChannel ();
         final int step = this.numColumns * (this.allRows - 1 - y) + x;
         final int note = offsetY + this.selectedPad;
-        final int vel = this.configuration.isAccentActive () ? this.configuration.getFixedAccentValue () : this.surface.getButton (ButtonID.get (ButtonID.PAD1, index)).getPressedVelocity ();
+        final int vel = this.getVelocity (index);
 
         if (this.handleSequencerAreaButtonCombinations (clip, channel, step, note, vel))
             return;
@@ -235,9 +287,25 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
 
 
     /**
+     * Get the velocity of the played pad. Either it is fixed in the settings or the stored value
+     * from the down event.
+     *
+     * @param index The index of the pad
+     * @return The velocity
+     */
+    protected int getVelocity (final int index)
+    {
+        if (this.configuration.isAccentActive ())
+            return this.configuration.getFixedAccentValue ();
+        final IHwButton button = this.surface.getButton (ButtonID.get (this.firstPad, index));
+        return button.getPressedVelocity ();
+    }
+
+
+    /**
      * Handle button combinations in the sequencer area.
      *
-     * @param clip The sequenced midi clip
+     * @param clip The sequenced MIDI clip
      * @param channel The MIDI channel of the note
      * @param step The step in the current page in the clip
      * @param note The note in the current page of the pad in the clip
@@ -247,32 +315,37 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     protected boolean handleSequencerAreaButtonCombinations (final INoteClip clip, final int channel, final int step, final int note, final int velocity)
     {
         // Handle note duplicate function
-        final IHwButton duplicateButton = this.surface.getButton (ButtonID.DUPLICATE);
-        if (duplicateButton != null && duplicateButton.isPressed ())
+        if (this.isButtonCombination (ButtonID.DUPLICATE))
         {
-            duplicateButton.setConsumed ();
             final IStepInfo noteStep = clip.getStep (channel, step, note);
-            if (noteStep.getState () == IStepInfo.NOTE_START)
+            if (noteStep.getState () == StepState.START)
                 this.copyNote = noteStep;
             else if (this.copyNote != null)
                 clip.setStep (channel, step, note, this.copyNote);
             return true;
         }
 
-        // Change length of a note or create a new one with a length
-        for (int s = step - 1; s >= 0; s--)
+        if (this.isButtonCombination (ButtonID.MUTE))
         {
-            final int x = s % this.numColumns;
-            final int y = this.allRows - 1 - s / this.numColumns;
-            final int pad = y * this.numColumns + x;
-            final IHwButton button = this.surface.getButton (ButtonID.get (ButtonID.PAD1, pad));
+            final IStepInfo stepInfo = clip.getStep (channel, step, note);
+            final StepState isSet = stepInfo.getState ();
+            if (isSet == StepState.START)
+                this.getClip ().updateMuteState (channel, step, note, !stepInfo.isMuted ());
+            return true;
+        }
+
+        // Change length of a note or create a new one with a length
+        for (int s = 0; s < step; s++)
+        {
+            final int pad = this.getPadIndex (s);
+            final IHwButton button = this.surface.getButton (ButtonID.get (this.firstPad, pad));
             if (button.isLongPressed ())
             {
                 button.setConsumed ();
                 final int length = step - s + 1;
                 final double duration = length * Resolution.getValueAt (this.getResolutionIndex ());
-                final int state = note < 0 ? 0 : clip.getStep (channel, s, note).getState ();
-                if (state == IStepInfo.NOTE_START)
+                final StepState state = note < 0 ? StepState.OFF : clip.getStep (channel, s, note).getState ();
+                if (state == StepState.START)
                     clip.updateStepDuration (channel, s, note, duration);
                 else
                     clip.setStep (channel, s, note, velocity, duration);
@@ -281,6 +354,20 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         }
 
         return false;
+    }
+
+
+    /**
+     * Calculate the index of the pad from the given sequencer step.
+     *
+     * @param step The step
+     * @return The pad index
+     */
+    protected int getPadIndex (final int step)
+    {
+        final int x = step % this.numColumns;
+        final int y = this.allRows - 1 - step / this.numColumns;
+        return y * this.numColumns + x;
     }
 
 
@@ -355,7 +442,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
             final INoteClip clip = this.getClip ();
             final boolean isActive = this.isActive ();
             this.drawPages (clip, isActive);
-            this.drawSequencerSteps (clip, isActive, this.scales.getDrumOffset () + this.selectedPad, this.getDrumPadColor (primary, this.selectedPad));
+            this.drawSequencerSteps (clip, isActive, this.scales.getDrumOffset () + this.selectedPad, this.getPadColor (primary, this.selectedPad));
         }
     }
 
@@ -367,7 +454,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
      * @param drumPadIndex The index of the drum pad in the current drum pad page
      * @return The color or null if not a drum device, drum layer is empty, ...
      */
-    protected Optional<ColorEx> getDrumPadColor (final IDrumDevice primary, final int drumPadIndex)
+    protected Optional<ColorEx> getPadColor (final IDrumDevice primary, final int drumPadIndex)
     {
         if (!primary.hasDrumPads ())
             return Optional.empty ();
@@ -408,23 +495,33 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     }
 
 
-    protected String getStepColor (final int isSet, final boolean hilite, final Optional<ColorEx> rowColor)
+    protected String getStepColor (final IStepInfo stepInfo, final boolean hilite, final Optional<ColorEx> rowColor, final int channel, final int step, final int note, final List<GridStep> editNotes)
     {
-        switch (isSet)
+        switch (stepInfo.getState ())
         {
-            // Note continues
-            case IStepInfo.NOTE_CONTINUE:
-                if (hilite)
-                    return AbstractSequencerView.COLOR_STEP_HILITE_CONTENT;
-                return rowColor.isPresent () && this.useDawColors ? DAWColor.getColorIndex (ColorEx.darker (rowColor.get ())) : AbstractSequencerView.COLOR_CONTENT_CONT;
             // Note starts
-            case IStepInfo.NOTE_START:
+            case START:
                 if (hilite)
-                    return AbstractSequencerView.COLOR_STEP_HILITE_CONTENT;
-                return rowColor.isPresent () && this.useDawColors ? DAWColor.getColorIndex (rowColor.get ()) : AbstractSequencerView.COLOR_CONTENT;
+                    return COLOR_STEP_HILITE_CONTENT;
+                if (isEdit (channel, step, note, editNotes))
+                    return COLOR_STEP_SELECTED;
+                if (stepInfo.isMuted ())
+                    return COLOR_STEP_MUTED;
+                return rowColor.isPresent () && this.useDawColors ? DAWColor.getColorIndex (rowColor.get ()) : COLOR_CONTENT;
+
+            // Note continues
+            case CONTINUE:
+                if (hilite)
+                    return COLOR_STEP_HILITE_CONTENT;
+                if (isEdit (channel, step, note, editNotes))
+                    return COLOR_STEP_SELECTED;
+                if (stepInfo.isMuted ())
+                    return COLOR_STEP_MUTED_CONT;
+                return rowColor.isPresent () && this.useDawColors ? DAWColor.getColorIndex (ColorEx.darker (rowColor.get ())) : COLOR_CONTENT_CONT;
+
             // Empty
             default:
-                return hilite ? AbstractSequencerView.COLOR_STEP_HILITE_NO_CONTENT : AbstractSequencerView.COLOR_NO_CONTENT;
+                return hilite ? COLOR_STEP_HILITE_NO_CONTENT : COLOR_NO_CONTENT;
         }
     }
 
@@ -504,11 +601,12 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         if (notify)
             this.surface.getDisplay ().notify (this.scales.getDrumRangeText ());
         this.model.getDrumDevice ().getDrumPadBank ().scrollTo (this.scales.getDrumOffset (), adjustPage);
+        this.clearEditNotes ();
     }
 
 
     /**
-     * Reset the drum octave tpo 0.
+     * Reset the drum octave to 0.
      */
     public void resetOctave ()
     {
@@ -520,7 +618,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
 
 
     /**
-     * Hook for playing notes with grids which do not use midi notes.
+     * Hook for playing notes with grids which do not use MIDI notes.
      *
      * @param note The note to play
      * @param velocity The velocity of the note
@@ -533,30 +631,30 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
 
     protected void handleNoteAreaButtonCombinations (final int playedPad)
     {
-        if (this.surface.isDeletePressed ())
+        if (this.isDeleteTrigger ())
         {
             // Delete all of the notes on that 'pad'
             this.handleDeleteButton (playedPad);
             return;
         }
 
-        if (this.surface.isMutePressed ())
+        if (this.isMuteTrigger ())
         {
             // Mute that 'pad'
             this.handleMuteButton (playedPad);
             return;
         }
 
-        if (this.surface.isSoloPressed ())
+        if (this.isSoloTrigger ())
         {
             // Solo that 'pad'
             this.handleSoloButton (playedPad);
             return;
         }
 
-        if (this.isButtonCombination (ButtonID.BROWSE))
+        if (this.isBrowseTrigger ())
         {
-            this.surface.setTriggerConsumed (ButtonID.BROWSE);
+            this.surface.setTriggerConsumed (this.buttonBrowse);
 
             final IDrumDevice primary = this.model.getDrumDevice ();
             if (!primary.hasDrumPads ())
@@ -568,7 +666,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
             return;
         }
 
-        if (this.surface.isSelectPressed () || this.configuration.isAutoSelectDrum ())
+        if (this.isSelectTrigger () || this.configuration.isAutoSelectDrum ())
         {
             // Also select the matching device layer channel of the pad
             this.handleSelectButton (playedPad);
@@ -576,27 +674,94 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     }
 
 
+    /**
+     * Test for the selection trigger.
+     *
+     * @return True if selection trigger is active
+     */
+    protected boolean isSelectTrigger ()
+    {
+        return this.surface.isPressed (this.buttonSelect);
+    }
+
+
+    /**
+     * Test for the browse trigger.
+     *
+     * @return True if browse trigger is active
+     */
+    protected boolean isBrowseTrigger ()
+    {
+        return this.surface.isPressed (this.buttonBrowse);
+    }
+
+
+    /**
+     * Test for the solo trigger.
+     *
+     * @return True if solo trigger is active
+     */
+    protected boolean isSoloTrigger ()
+    {
+        return this.surface.isPressed (this.buttonSolo);
+    }
+
+
+    /**
+     * Test for the mute trigger.
+     *
+     * @return True if mute trigger is active
+     */
+    protected boolean isMuteTrigger ()
+    {
+        return this.surface.isPressed (this.buttonMute);
+    }
+
+
+    /**
+     * Test for the delete trigger.
+     *
+     * @return True if delete trigger is active
+     */
+    protected boolean isDeleteTrigger ()
+    {
+        return this.surface.isPressed (this.buttonDelete);
+    }
+
+
+    /**
+     * Handle a delete combination.
+     *
+     * @param playedPad The pad which notes to delete
+     */
     protected void handleDeleteButton (final int playedPad)
     {
-        this.surface.setTriggerConsumed (ButtonID.DELETE);
-        this.updateNoteMapping ();
+        this.surface.setTriggerConsumed (this.buttonDelete);
         final int editMidiChannel = this.configuration.getMidiEditChannel ();
         this.getClip ().clearRow (editMidiChannel, this.scales.getDrumOffset () + playedPad);
     }
 
 
+    /**
+     * Handle a mute combination.
+     *
+     * @param playedPad The pad which channel to mute
+     */
     protected void handleMuteButton (final int playedPad)
     {
-        this.surface.setTriggerConsumed (ButtonID.MUTE);
-        this.updateNoteMapping ();
+        this.surface.setTriggerConsumed (this.buttonMute);
         this.model.getDrumDevice ().getDrumPadBank ().getItem (playedPad).toggleMute ();
     }
 
 
+    /**
+     * Handle a solo combination.
+     *
+     * @param playedPad The pad which channel to solo
+     */
     protected void handleSoloButton (final int playedPad)
     {
-        this.surface.setTriggerConsumed (ButtonID.SOLO);
-        this.updateNoteMapping ();
+        this.surface.setTriggerConsumed (this.buttonSolo);
         this.model.getDrumDevice ().getDrumPadBank ().getItem (playedPad).toggleSolo ();
     }
 
@@ -604,11 +769,12 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
     /**
      * Handle the select button.
      *
-     * @param playedPad The played pad
+     * @param playedPad The pad which to select
      */
     protected void handleSelectButton (final int playedPad)
     {
-        // Hook for select button combination with pads
+        this.surface.setTriggerConsumed (this.buttonSelect);
+        this.model.getDrumDevice ().getDrumPadBank ().getItem (playedPad).select ();
     }
 
 
@@ -617,16 +783,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         if (!this.model.canSelectedTrackHoldNotes ())
             return false;
 
-        if (this.surface.isSelectPressed () && !this.surface.isTriggerConsumed (ButtonID.SELECT))
-            return false;
-
-        if (this.surface.isDeletePressed () && !this.surface.isTriggerConsumed (ButtonID.DELETE))
-            return false;
-
-        if (this.surface.isMutePressed () && !this.surface.isTriggerConsumed (ButtonID.MUTE))
-            return false;
-
-        return !this.surface.isSoloPressed () || this.surface.isTriggerConsumed (ButtonID.SOLO);
+        return !(this.isSelectTrigger () || this.isDeleteTrigger () || this.isMuteTrigger () || this.isSoloTrigger () || this.isBrowseTrigger ());
     }
 
 
@@ -659,15 +816,16 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         final int hiStep = this.isInXRange (step) ? step % this.sequencerSteps : -1;
         final int editMidiChannel = this.configuration.getMidiEditChannel ();
         final IPadGrid padGrid = this.surface.getPadGrid ();
+        final List<GridStep> editNotes = this.getEditNotes ();
         for (int col = 0; col < this.sequencerSteps; col++)
         {
-            final int isSet = clip.getStep (editMidiChannel, col, noteRow).getState ();
+            final IStepInfo stepInfo = clip.getStep (editMidiChannel, col, noteRow);
             final boolean hilite = col == hiStep;
             final int x = col % this.numColumns;
             int y = col / this.numColumns;
             if (yModifier != null)
                 y = yModifier.applyAsInt (y);
-            padGrid.lightEx (x, y, isActive ? this.getStepColor (isSet, hilite, rowColor) : AbstractSequencerView.COLOR_NO_CONTENT);
+            padGrid.lightEx (x, y, isActive ? this.getStepColor (stepInfo, hilite, rowColor, editMidiChannel, col, noteRow, editNotes) : AbstractSequencerView.COLOR_NO_CONTENT);
         }
     }
 
@@ -686,7 +844,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
         final int loopStartPad = (int) Math.ceil (loopStart / lengthOfOnePad);
         final int loopEndPad = (int) Math.ceil ((loopStart + clip.getLoopLength ()) / lengthOfOnePad);
         final int currentPage = step / this.sequencerSteps;
-        final int numOfPages = this.playColumns * this.playRows;
+        final int numOfPages = this.getNumberOfAvailablePages ();
         final IPadGrid padGrid = this.surface.getPadGrid ();
         for (int pad = 0; pad < numOfPages; pad++)
         {
@@ -694,6 +852,17 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
             final int y = this.sequencerLines + pad / this.playColumns;
             padGrid.lightEx (x, y, isActive ? this.getPageColor (loopStartPad, loopEndPad, currentPage, clip.getEditPage (), pad) : AbstractSequencerView.COLOR_NO_CONTENT);
         }
+    }
+
+
+    /**
+     * Get the number of clip pages which are available to be drawn on.
+     *
+     * @return The number
+     */
+    protected int getNumberOfAvailablePages ()
+    {
+        return this.playColumns * this.playRows;
     }
 
 
@@ -724,6 +893,7 @@ public abstract class AbstractDrumView<S extends IControlSurface<C>, C extends C
             return;
 
         this.selectedPad = selectedPad;
+        this.clearEditNotes ();
         if (velocity > 0)
             this.model.getDrumDevice ().getDrumPadBank ().getItem (selectedPad).select ();
     }

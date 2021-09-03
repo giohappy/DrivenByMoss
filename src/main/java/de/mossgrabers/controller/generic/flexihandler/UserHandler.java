@@ -7,6 +7,9 @@ package de.mossgrabers.controller.generic.flexihandler;
 import de.mossgrabers.controller.generic.GenericFlexiConfiguration;
 import de.mossgrabers.controller.generic.controller.FlexiCommand;
 import de.mossgrabers.controller.generic.controller.GenericFlexiControlSurface;
+import de.mossgrabers.controller.generic.flexihandler.utils.FlexiHandlerException;
+import de.mossgrabers.controller.generic.flexihandler.utils.KnobMode;
+import de.mossgrabers.controller.generic.flexihandler.utils.MidiValue;
 import de.mossgrabers.framework.controller.valuechanger.IValueChanger;
 import de.mossgrabers.framework.daw.IModel;
 import de.mossgrabers.framework.daw.data.IParameter;
@@ -26,12 +29,13 @@ public class UserHandler extends AbstractHandler
      * @param model The model
      * @param surface The surface
      * @param configuration The configuration
-     * @param relative2ValueChanger The relative value changer variant 2
-     * @param relative3ValueChanger The relative value changer variant 3
+     * @param absoluteLowResValueChanger The default absolute value changer in low res mode
+     * @param signedBitRelativeValueChanger The signed bit relative value changer
+     * @param offsetBinaryRelativeValueChanger The offset binary relative value changer
      */
-    public UserHandler (final IModel model, final GenericFlexiControlSurface surface, final GenericFlexiConfiguration configuration, final IValueChanger relative2ValueChanger, final IValueChanger relative3ValueChanger)
+    public UserHandler (final IModel model, final GenericFlexiControlSurface surface, final GenericFlexiConfiguration configuration, final IValueChanger absoluteLowResValueChanger, final IValueChanger signedBitRelativeValueChanger, final IValueChanger offsetBinaryRelativeValueChanger)
     {
-        super (model, surface, configuration, relative2ValueChanger, relative3ValueChanger);
+        super (model, surface, configuration, absoluteLowResValueChanger, signedBitRelativeValueChanger, offsetBinaryRelativeValueChanger);
     }
 
 
@@ -102,7 +106,7 @@ public class UserHandler extends AbstractHandler
 
     /** {@inheritDoc} */
     @Override
-    public void handle (final FlexiCommand command, final int knobMode, final int value)
+    public void handle (final FlexiCommand command, final KnobMode knobMode, final MidiValue value)
     {
         final IParameterBank userParameterBank = this.model.getUserParameterBank ();
         if (userParameterBank == null)
@@ -120,10 +124,11 @@ public class UserHandler extends AbstractHandler
             case USER_SET_PARAMETER_8:
                 final int index = command.ordinal () - FlexiCommand.USER_SET_PARAMETER_1.ordinal ();
                 final IParameter userParam = userParameterBank.getItem (index);
+                final int val = value.getValue ();
                 if (isAbsolute (knobMode))
-                    userParam.setValue (value);
+                    userParam.setValue (this.getAbsoluteValueChanger (value), val);
                 else
-                    userParam.changeValue (this.getRelativeValueChanger (knobMode), value);
+                    userParam.changeValue (this.getRelativeValueChanger (knobMode), val);
                 break;
 
             case USER_TOGGLE_PARAMETER_1:

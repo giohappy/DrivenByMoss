@@ -27,7 +27,7 @@ public class ParameterComponent extends MenuComponent
     private final String  paramName;
     private final String  paramValueText;
     private final int     paramValue;
-    private int           modulatedParamValue;
+    private final int     modulatedParamValue;
     private final boolean isTouched;
 
 
@@ -86,7 +86,7 @@ public class ParameterComponent extends MenuComponent
      * @param modulatedParamValue The modulated value of the fader, -1 if not modulated
      * @param paramValueText The textual form of the faders value
      * @param isTouched True if touched
-     * @param lowerLayout THe layout for the lower label
+     * @param lowerLayout The layout for the lower label
      */
     public ParameterComponent (final String menuName, final boolean isMenuSelected, final String name, final String deviceName, final ColorEx color, final boolean isSelected, final String paramName, final int paramValue, final int modulatedParamValue, final String paramValueText, final boolean isTouched, final LabelLayout lowerLayout)
     {
@@ -208,14 +208,10 @@ public class ParameterComponent extends MenuComponent
     {
         if (this == obj)
             return true;
-        if (!super.equals (obj))
-            return false;
-        if (this.getClass () != obj.getClass ())
+        if (!super.equals (obj) || this.getClass () != obj.getClass ())
             return false;
         final ParameterComponent other = (ParameterComponent) obj;
-        if (this.isTouched != other.isTouched)
-            return false;
-        if (this.modulatedParamValue != other.modulatedParamValue)
+        if (this.isTouched != other.isTouched || this.modulatedParamValue != other.modulatedParamValue)
             return false;
         if (this.paramName == null)
         {

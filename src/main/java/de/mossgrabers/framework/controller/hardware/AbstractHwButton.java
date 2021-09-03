@@ -7,6 +7,7 @@ package de.mossgrabers.framework.controller.hardware;
 import de.mossgrabers.framework.command.core.TriggerCommand;
 import de.mossgrabers.framework.daw.IHost;
 import de.mossgrabers.framework.utils.ButtonEvent;
+import de.mossgrabers.framework.utils.TimeoutOptimizer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,9 @@ import java.util.List;
  */
 public abstract class AbstractHwButton extends AbstractHwInputControl implements IHwButton
 {
-    private static final int               BUTTON_STATE_INTERVAL = 400;
+    private static final int               BUTTON_STATE_INTERVAL = 300;
+
+    private final TimeoutOptimizer         optimizer;
 
     protected TriggerCommand               command;
     protected IHwLight                     light;
@@ -41,6 +44,8 @@ public abstract class AbstractHwButton extends AbstractHwInputControl implements
     protected AbstractHwButton (final IHost host, final String label)
     {
         super (host, label);
+
+        this.optimizer = new TimeoutOptimizer (host, BUTTON_STATE_INTERVAL);
     }
 
 
@@ -73,7 +78,7 @@ public abstract class AbstractHwButton extends AbstractHwInputControl implements
         this.state = ButtonEvent.DOWN;
         this.isConsumed = false;
 
-        this.host.scheduleTask (this::checkButtonState, BUTTON_STATE_INTERVAL);
+        this.host.scheduleTask (this::checkButtonState, this.optimizer.getTimeout ());
         this.pressedVelocity = (int) (value * 127.0);
         if (this.command != null)
             this.command.execute (ButtonEvent.DOWN, this.pressedVelocity);
@@ -143,6 +148,17 @@ public abstract class AbstractHwButton extends AbstractHwInputControl implements
 
     /** {@inheritDoc} */
     @Override
+    public void removeEventHandler (final ButtonEvent event, final ButtonEventHandler eventHandler)
+    {
+        if (event == ButtonEvent.DOWN)
+            this.downEventHandlers.remove (eventHandler);
+        else if (event == ButtonEvent.UP)
+            this.upEventHandlers.remove (eventHandler);
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
     public void setConsumed ()
     {
         this.isConsumed = true;
@@ -154,6 +170,15 @@ public abstract class AbstractHwButton extends AbstractHwInputControl implements
     public boolean isConsumed ()
     {
         return this.isConsumed;
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
+    public void trigger ()
+    {
+        this.trigger (ButtonEvent.DOWN);
+        this.trigger (ButtonEvent.UP);
     }
 
 

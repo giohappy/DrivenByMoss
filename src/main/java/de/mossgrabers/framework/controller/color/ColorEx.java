@@ -194,7 +194,7 @@ public class ColorEx
     /**
      * Convert the internal color state to 3 double RGB values.
      *
-     * @return The 3 int (0-1) values
+     * @return The 3 integer (0-1) values
      */
     public double [] toDoubleRGB ()
     {
@@ -499,14 +499,10 @@ public class ColorEx
     {
         if (this == obj)
             return true;
-        if (obj == null)
-            return false;
-        if (this.getClass () != obj.getClass ())
+        if (obj == null || this.getClass () != obj.getClass ())
             return false;
         final ColorEx other = (ColorEx) obj;
-        if (Double.doubleToLongBits (this.blueValue) != Double.doubleToLongBits (other.blueValue))
-            return false;
-        if (Double.doubleToLongBits (this.greenValue) != Double.doubleToLongBits (other.greenValue))
+        if (Double.doubleToLongBits (this.blueValue) != Double.doubleToLongBits (other.blueValue) || Double.doubleToLongBits (this.greenValue) != Double.doubleToLongBits (other.greenValue))
             return false;
         return Double.doubleToLongBits (this.redValue) == Double.doubleToLongBits (other.redValue);
     }

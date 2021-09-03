@@ -35,20 +35,20 @@ import com.bitwig.extension.controller.api.RelativeHardwareValueMatcher;
 
 
 /**
- * A midi input.
+ * A MIDI input.
  *
  * @author J&uuml;rgen Mo&szlig;graber
  */
 public class MidiInputImpl implements IMidiInput
 {
-    private MidiIn        port;
+    private final MidiIn  port;
     private NoteInputImpl defaultNoteInput;
 
 
     /**
      * Constructor. Creates a default note input.
      *
-     * @param portNumber The number of the midi input port
+     * @param portNumber The number of the MIDI input port
      * @param host The Bitwig host
      * @param name the name of the note input as it appears in the track input choosers in Bitwig
      *            Studio

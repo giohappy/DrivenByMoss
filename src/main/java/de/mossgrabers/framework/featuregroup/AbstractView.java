@@ -4,10 +4,12 @@
 
 package de.mossgrabers.framework.featuregroup;
 
+import de.mossgrabers.framework.command.core.AbstractTriggerCommand;
 import de.mossgrabers.framework.command.core.AftertouchCommand;
 import de.mossgrabers.framework.configuration.Configuration;
 import de.mossgrabers.framework.controller.ButtonID;
 import de.mossgrabers.framework.controller.IControlSurface;
+import de.mossgrabers.framework.controller.hardware.IHwButton;
 import de.mossgrabers.framework.daw.DAWColor;
 import de.mossgrabers.framework.daw.IModel;
 import de.mossgrabers.framework.daw.data.ITrack;
@@ -33,11 +35,6 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
 
     private AftertouchCommand     aftertouchCommand;
 
-    protected boolean             canScrollLeft;
-    protected boolean             canScrollRight;
-    protected boolean             canScrollUp;
-    protected boolean             canScrollDown;
-
 
     /**
      * Constructor.
@@ -52,11 +49,6 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
 
         this.scales = model.getScales ();
         this.keyManager = new KeyManager (model, this.scales, surface.getPadGrid ());
-
-        this.canScrollLeft = true;
-        this.canScrollRight = true;
-        this.canScrollUp = true;
-        this.canScrollDown = true;
     }
 
 
@@ -134,7 +126,7 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
     /**
      * Get the ID of the color to use for a pad with respect to the current scale settings.
      *
-     * @param pad The midi note of the pad
+     * @param pad The MIDI note of the pad
      * @param track A track to use the track color for coloring the octave notes, set to null to use
      *            the default color
      * @return The color ID
@@ -174,6 +166,14 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
     }
 
 
+    /** {@inheritDoc} */
+    @Override
+    public KeyManager getKeyManager ()
+    {
+        return this.keyManager;
+    }
+
+
     protected void delayedUpdateNoteMapping (final int [] matrix)
     {
         this.surface.scheduleTask ( () -> {
@@ -181,17 +181,6 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
             if (matrix.length == 128)
                 this.surface.setKeyTranslationTable (this.scales.translateMatrixToGrid (matrix));
         }, 6);
-    }
-
-
-    /**
-     * Get the key manager.
-     *
-     * @return The key manager
-     */
-    public KeyManager getKeyManager ()
-    {
-        return this.keyManager;
     }
 
 
@@ -209,5 +198,34 @@ public abstract class AbstractView<S extends IControlSurface<C>, C extends Confi
             return true;
         }
         return false;
+    }
+
+
+    /**
+     * Simulate pressing a button by sending a button down and up event.
+     *
+     * @param buttonID The ID of the button to trigger
+     */
+    protected void simulateButtonPress (final ButtonID buttonID)
+    {
+        final IHwButton button = this.surface.getButton (buttonID);
+        final AbstractTriggerCommand<?, ?> triggerCommand = (AbstractTriggerCommand<?, ?>) button.getCommand ();
+        triggerCommand.executeNormal (ButtonEvent.DOWN);
+        triggerCommand.executeNormal (ButtonEvent.UP);
+    }
+
+
+    /**
+     * Simulate pressing a button with combination of the shift button by sending a button down and
+     * up event.
+     *
+     * @param buttonID The ID of the button to trigger
+     */
+    protected void simulateShiftedButtonPress (final ButtonID buttonID)
+    {
+        final IHwButton button = this.surface.getButton (buttonID);
+        final AbstractTriggerCommand<?, ?> triggerCommand = (AbstractTriggerCommand<?, ?>) button.getCommand ();
+        triggerCommand.executeShifted (ButtonEvent.DOWN);
+        triggerCommand.executeShifted (ButtonEvent.UP);
     }
 }

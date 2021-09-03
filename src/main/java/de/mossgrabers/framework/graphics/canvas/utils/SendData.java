@@ -21,10 +21,10 @@ public class SendData
     /**
      * Constructor.
      *
-     * @param name THe name of the send
+     * @param name The name of the send
      * @param text The description text
      * @param value The value
-     * @param modulatedValue THe modulated value
+     * @param modulatedValue The modulated value
      * @param edited Is selected for editing
      */
     public SendData (final String name, final String text, final int value, final int modulatedValue, final boolean edited)
@@ -82,7 +82,7 @@ public class SendData
 
 
     /**
-     * Is the sendselected for editing.
+     * Is the send selected for editing.
      *
      * @return True if selected
      */
@@ -113,14 +113,10 @@ public class SendData
     {
         if (this == obj)
             return true;
-        if (obj == null)
-            return false;
-        if (this.getClass () != obj.getClass ())
+        if (obj == null || this.getClass () != obj.getClass ())
             return false;
         final SendData other = (SendData) obj;
-        if (this.edited != other.edited)
-            return false;
-        if (this.modulatedValue != other.modulatedValue)
+        if (this.edited != other.edited || this.modulatedValue != other.modulatedValue)
             return false;
         if (this.name == null)
         {

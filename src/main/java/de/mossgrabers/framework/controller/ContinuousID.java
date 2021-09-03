@@ -15,7 +15,7 @@ import java.util.List;
  */
 public enum ContinuousID
 {
-    /** The Mastertrack fader. */
+    /** The master track fader. */
     FADER_MASTER,
 
     /** The fader 1. */
@@ -38,8 +38,11 @@ public enum ContinuousID
     /** The crossfader. */
     CROSSFADER,
 
-    /** The Mastertrack knob. */
+    /** The master track knob. */
     MASTER_KNOB,
+
+    /** A monitor knob. */
+    MONITOR_KNOB,
 
     /** Knob 1. */
     KNOB1,
@@ -87,7 +90,7 @@ public enum ContinuousID
     /** Continuous touch pad in y direction. */
     TOUCHPAD_Y,
 
-    /** Initialise a handhake. */
+    /** Initialize a handshake. */
     HELLO,
 
     /** Selection of tracks with multiple values. */
